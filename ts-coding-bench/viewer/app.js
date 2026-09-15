@@ -118,16 +118,26 @@ function groups(rows){
   };
  });
 }
+function recordedTime(rows){
+ const timed=rows.filter(r=>Number.isFinite(r.wall_s)&&r.wall_s>=0);
+ return {seconds:timed.length?timed.reduce((sum,r)=>sum+r.wall_s,0):null,missing:rows.length-timed.length};
+}
+function duration(seconds){
+ if(!Number.isFinite(seconds))return '—';
+ return seconds<60?fmt(seconds)+' s':seconds<3600?Math.floor(seconds/60)+'m '+Math.floor(seconds%60)+'s':Math.floor(seconds/3600)+'h '+Math.floor(seconds%3600/60)+'m';
+}
 function metric(label,value,caption,feature=false){return '<div class="metric '+(feature?'feature':'')+'"><div class="label">'+label+'</div><strong>'+value+'</strong><small>'+caption+'</small></div>'}
 function render(){
  matching=selectedRows();grouped=groups(matching);
+ grouped.forEach(g=>{const t=recordedTime(g.rows);g.totalTime=t.seconds;g.missingTime=t.missing});
  const passed=matching.filter(r=>r.passed).length,compiled=matching.filter(r=>r.compiled).length;
  $('metrics').innerHTML=metric('Task pass rate',matching.length?fmt(100*passed/matching.length)+'%':'—',passed+' / '+matching.length+' saved attempts',true)+
   metric('Generation speed',fmt(median(matching.map(r=>r.tokens_s)))+' <small>tok/s</small>','Median over selected attempts')+
   metric('Answer latency',fmt(median(matching.map(r=>r.wall_s)))+' <small>s</small>','Median complete request time')+
-  metric('Strict compilation',matching.length?fmt(100*compiled/matching.length)+'%':'—',new Set(matching.map(r=>r.model)).size+' models · '+new Set(matching.map(r=>r.run)).size+' runs');
+  metric('Strict compilation',matching.length?fmt(100*compiled/matching.length)+'%':'—',new Set(matching.map(r=>r.model)).size+' models · '+new Set(matching.map(r=>r.run)).size+' runs')+
+  metric('Total recorded model time',duration(recordedTime(matching).seconds),recordedTime(matching).missing+' attempts without timing · excludes compilation/downloads');
  $('empty').hidden=matching.length>0||view==='runs';
- renderBoard();renderScatter();renderOutcomes();renderMatrix();renderLatency();renderTimeline();renderAttempts();renderRuns();
+ renderBoard();renderScatter();renderTotalTime();renderOutcomes();renderMatrix();renderLatency();renderTimeline();renderAttempts();renderRuns();
  $('diagnosticLabel').textContent='Import diagnostics · '+data.warnings.length+' warnings';
  $('diagnostics').textContent=JSON.stringify(data.warnings,null,2);
 }
@@ -167,6 +177,7 @@ function renderBoard(){
    '<td>'+fmt(g.compile)+'%</td>'+
 
    '<td>'+fmt(g.speed)+'</td>'+
+   '<td>'+duration(g.totalTime)+'<small>'+g.missingTime+' missing timings</small></td>'+
 
    // SAVED column
    '<td>'+esc(fmtDate(g.saved))+'</td>'+
@@ -196,6 +207,18 @@ function renderScatter(){
  s+='<text x="255" y="266">GENERATION TOKENS / SECOND</text>';
  gs.forEach((g,i)=>{const x=45+560*g.speed/max,y=225-192*(g.rate/100);s+='<circle cx="'+x+'" cy="'+y+'" r="'+(g.partial?5:7)+'" fill="'+color(i)+'" opacity=".85" stroke="white" stroke-width="2"><title>'+esc(g.model+' | '+g.run+' | '+fmt(g.rate)+'% | '+fmt(g.speed)+' tok/s | '+g.rows.length+' saved attempts')+'</title></circle>'});
  $('scatter').innerHTML=svg(s);
+}
+function renderTotalTime(){
+ const gs=grouped.filter(g=>g.totalTime!=null&&g.missingTime===0),max=Math.max(1,...gs.map(g=>g.totalTime))*1.1;
+ let s='<text x="9" y="14">PASS RATE</text>';
+ for(let i=0;i<=4;i++){const y=225-i*48;s+='<line class="gridline" x1="45" x2="625" y1="'+y+'" y2="'+y+'"/><text x="9" y="'+(y+4)+'">'+i*25+'%</text>'}
+ for(let i=0;i<=4;i++)s+='<text x="'+(45+i*140)+'" y="246">'+fmt(max*i/240,1)+'</text>';
+ s+='<text x="175" y="266">TOTAL RECORDED MODEL TIME (MINUTES)</text>';
+ gs.forEach((g,i)=>{
+  const x=45+560*g.totalTime/max,y=225-192*g.rate/100;
+  s+='<circle cx="'+x+'" cy="'+y+'" r="7" fill="'+color(i)+'" fill-opacity="'+(g.partial?'.35':'.9')+'" stroke="'+color(i)+'"><title>'+esc(g.model+' | '+g.run+' | '+fmt(g.rate)+'% | '+duration(g.totalTime)+' | '+g.rows.length+' filtered attempts'+(g.partial?' | PARTIAL SUITE':''))+'</title></circle>';
+ });
+ $('totalTimeChart').innerHTML=svg(s)+'<p class="note">'+(grouped.length-gs.length)+' groups excluded because timing is missing. Faded points are partial suites. Compare equal task sets; filters change both time totals and pass rates.</p>';
 }
 function renderOutcomes(){
  const counts=new Map();matching.forEach(r=>counts.set(r.status,(counts.get(r.status)||0)+1));

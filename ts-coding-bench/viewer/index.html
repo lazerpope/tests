@@ -80,6 +80,16 @@
             <article class="panel">
                 <div class="panel-title">
                     <div>
+                        <h2>Pass rate versus total time</h2>
+                        <p>Y: pass rate. X: summed model request time. Hover over points for model and run details.</p>
+                    </div>
+                </div>
+                <div id="totalTimeChart"></div>
+                <p class="note">Recorded model time excludes downloads, warmup, compilation, checks and pauses. Historical results do not contain full suite elapsed time.</p>
+            </article>
+            <article class="panel">
+                <div class="panel-title">
+                    <div>
                         <h2>Comparison board</h2>
                         <p>Click column headings to sort. Partial groups stay marked.</p>
                     </div><span id="groupCount" class="tag"></span>
@@ -95,6 +105,7 @@
                                 <th data-sort="rate">Pass rate ↕</th>
                                 <th data-sort="compile">Compile ↕</th>
                                 <th data-sort="speed">Tokens/s ↕</th>
+                                <th data-sort="totalTime">Total model time ↕</th>
                                 <th data-sort="saved">Saved ↕</th>                                
                                 <th data-sort="ttft">TTFT s ↕</th>
                                 <th>Coverage / settings</th>
