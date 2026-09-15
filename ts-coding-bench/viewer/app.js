@@ -190,11 +190,11 @@ function renderBoard(){
 function svg(content,w=650,h=270){return '<svg viewBox="0 0 '+w+' '+h+'" role="img">'+content+'</svg>'}
 function renderScatter(){
  const gs=grouped.filter(g=>g.speed!=null),max=Math.max(10,...gs.map(g=>g.speed))*1.15;
- let s='';
+ let s='<text x="9" y="14">PASS RATE</text>';
  for(let i=0;i<=4;i++){const y=225-i*48;s+='<line class="gridline" x1="45" x2="625" y1="'+y+'" y2="'+y+'"/><text x="9" y="'+(y+4)+'">'+i*25+'%</text>'}
  for(let i=0;i<=4;i++)s+='<text x="'+(45+i*140)+'" y="246">'+fmt(max*i/4,0)+'</text>';
  s+='<text x="255" y="266">GENERATION TOKENS / SECOND</text>';
- gs.forEach((g,i)=>{const x=45+560*g.speed/max,y=225-192*g.rate;s+='<circle cx="'+x+'" cy="'+y+'" r="'+(g.partial?5:7)+'" fill="'+color(i)+'" opacity=".85" stroke="white" stroke-width="2"><title>'+esc(g.model+' | '+g.run+' | '+fmt(g.rate)+'% | '+fmt(g.speed)+' tok/s | '+g.rows.length+' saved attempts')+'</title></circle>'});
+ gs.forEach((g,i)=>{const x=45+560*g.speed/max,y=225-192*(g.rate/100);s+='<circle cx="'+x+'" cy="'+y+'" r="'+(g.partial?5:7)+'" fill="'+color(i)+'" opacity=".85" stroke="white" stroke-width="2"><title>'+esc(g.model+' | '+g.run+' | '+fmt(g.rate)+'% | '+fmt(g.speed)+' tok/s | '+g.rows.length+' saved attempts')+'</title></circle>'});
  $('scatter').innerHTML=svg(s);
 }
 function renderOutcomes(){
