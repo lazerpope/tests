@@ -2,6 +2,25 @@
 
 All commands below are for you to run in PowerShell. Editing configuration or reading this guide does not start anything.
 
+## NEW: Run tasks through DSH with private grading
+
+The separate `dsh_bench.py` runner gives DSH an isolated Docker shell, public feedback and repair attempts. Hidden grading happens after DSH stops. It uses your enabled models and saves results to the same dashboard with **Backend: dsh**.
+
+Start Docker Desktop in Linux-container mode and Ollama, then run from this folder:
+
+~~~powershell
+# One-time isolated compiler image build (no benchmark tests)
+python dsh_bench.py build
+
+# One model / one task first
+python -u dsh_bench.py run --models "qwen3:8b" --tasks group-by --pull --context 8192 --tokens 2048 --thinking off --run dsh-first
+
+# All enabled tool-capable models / complete TypeScript suite
+python -u dsh_bench.py run --suite typescript --pull --context 8192 --tokens 2048 --thinking off --run dsh-enabled
+~~~
+
+This integration targets your installed **DSH 0.1.5-rc.1**. It has not been run end to end. See the [complete DSH guide](dsh/README.md) for isolation, thinking/cache controls, budgets, stopping/resuming and first-versus-final scores. Restart the viewer server once to enable the new DSH artifact tabs and suite timing.
+
 ## 1. Open the benchmark folder
 
 ~~~powershell

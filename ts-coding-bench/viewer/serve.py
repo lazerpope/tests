@@ -25,6 +25,9 @@ def snapshot():
         run = dict(id=path.parent.name, created=manifest.get("created", ""),
                    config=config, hardware=manifest.get("hardware", {}),
                    history=manifest.get("harness_changes", []), errors=[])
+        timing_path = path.parent / "timing.json"
+        if timing_path.exists():
+            run["timing"] = read(timing_path)
         for error in path.parent.glob("errors/*.json"):
             value = read(error)
             if value is not None:
@@ -69,7 +72,9 @@ class Handler(BaseHTTPRequestHandler):
             rel = parse_qs(url.query).get("path", [""])[0]
             target = (RUNS / rel).resolve()
             allowed = {"solution.ts", "answer.txt", "thinking.txt", "compile.log",
-                       "request.json", "result.json", "typechecks.ts", "checks.json"}
+                       "request.json", "result.json", "typechecks.ts", "checks.json",
+                       "first-solution.ts", "first-result.json", "dsh-events.jsonl",
+                       "tool-events.jsonl", "dsh-stderr.log", "provider-errors.jsonl"}
             if not target.is_relative_to(RUNS.resolve()) or target.name not in allowed:
                 return self.send(403, '{"error":"Artifact not allowed"}')
             try:

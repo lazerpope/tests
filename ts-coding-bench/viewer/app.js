@@ -10,7 +10,7 @@ let sortKey='rate',sortDir=-1;
 let state={excluded:[],filters:{},search:'',from:'',to:'',minSpeed:'',maxTime:'',completeOnly:false,live:true};
 try{state={...state,...JSON.parse(localStorage.getItem('benchroom-v1')||'{}')}}catch{}
 const save=()=>{try{localStorage.setItem('benchroom-v1',JSON.stringify(state))}catch{}};
-const fieldDefs=[['model','Model'],['task','Task'],['status','Outcome'],['suite','Suite'],['backend','Backend'],['thinking','Thinking']];
+const fieldDefs=[['model','Model'],['task','Task'],['status','Outcome'],['suite','Suite'],['backend','Backend'],['thinking','Thinking'],['agent_stop_reason','Agent stop reason'],['first_passed','First submission passed']];
 const advancedDefs=[['category','Category'],['context','Context'],['tokens','Output limit'],['temperature','Temperature'],['top_p','Top p'],['top_k','Top k'],['min_p','Min p'],['repeat_penalty','Repeat penalty'],['seed','Seed'],['repeat','Repeat index'],['digest','Model digest'],['suiteHash','Suite version'],['harnessHash','Harness version'],['gpu','GPU']];
 const fmtDate=x=>x?new Date(x).toLocaleString():'Unknown';
 const fullkey=r=>JSON.stringify([r.run,r.model,r.digest,r.harnessHash]);
@@ -119,8 +119,8 @@ function groups(rows){
  });
 }
 function recordedTime(rows){
- const timed=rows.filter(r=>Number.isFinite(r.wall_s)&&r.wall_s>=0);
- return {seconds:timed.length?timed.reduce((sum,r)=>sum+r.wall_s,0):null,missing:rows.length-timed.length};
+ const times=rows.map(r=>r.end_to_end_s??r.wall_s).filter(t=>Number.isFinite(t)&&t>=0);
+ return {seconds:times.length?times.reduce((sum,t)=>sum+t,0):null,missing:rows.length-times.length};
 }
 function duration(seconds){
  if(!Number.isFinite(seconds))return '—';
@@ -133,9 +133,11 @@ function render(){
  const passed=matching.filter(r=>r.passed).length,compiled=matching.filter(r=>r.compiled).length;
  $('metrics').innerHTML=metric('Task pass rate',matching.length?fmt(100*passed/matching.length)+'%':'—',passed+' / '+matching.length+' saved attempts',true)+
   metric('Generation speed',fmt(median(matching.map(r=>r.tokens_s)))+' <small>tok/s</small>','Median over selected attempts')+
-  metric('Answer latency',fmt(median(matching.map(r=>r.wall_s)))+' <small>s</small>','Median complete request time')+
+  metric('Answer / agent latency',fmt(median(matching.map(r=>r.wall_s)))+' <small>s</small>','Direct: model request. DSH: complete agent session.')+
   metric('Strict compilation',matching.length?fmt(100*compiled/matching.length)+'%':'—',new Set(matching.map(r=>r.model)).size+' models · '+new Set(matching.map(r=>r.run)).size+' runs')+
-  metric('Total recorded model time',duration(recordedTime(matching).seconds),recordedTime(matching).missing+' attempts without timing · excludes compilation/downloads');
+  metric('Total recorded attempt time',duration(recordedTime(matching).seconds),recordedTime(matching).missing+' attempts without timing · DSH includes grading; direct runs record generation only');
+ const agentRows=matching.filter(r=>r.backend==='dsh');
+ if(agentRows.length)$('metrics').innerHTML+=metric('DSH first submission',fmt(100*agentRows.filter(r=>r.first_passed===true).length/agentRows.length)+'<small>%</small>','Private pass rate before public-feedback repairs; no submission counts as unsolved');
  $('empty').hidden=matching.length>0||view==='runs';
  renderBoard();renderScatter();renderTotalTime();renderOutcomes();renderMatrix();renderLatency();renderTimeline();renderAttempts();renderRuns();
  $('diagnosticLabel').textContent='Import diagnostics · '+data.warnings.length+' warnings';
@@ -213,7 +215,7 @@ function renderTotalTime(){
  let s='<text x="9" y="14">PASS RATE</text>';
  for(let i=0;i<=4;i++){const y=225-i*48;s+='<line class="gridline" x1="45" x2="625" y1="'+y+'" y2="'+y+'"/><text x="9" y="'+(y+4)+'">'+i*25+'%</text>'}
  for(let i=0;i<=4;i++)s+='<text x="'+(45+i*140)+'" y="246">'+fmt(max*i/240,1)+'</text>';
- s+='<text x="175" y="266">TOTAL RECORDED MODEL TIME (MINUTES)</text>';
+ s+='<text x="165" y="266">TOTAL RECORDED ATTEMPT TIME (MINUTES)</text>';
  gs.forEach((g,i)=>{
   const x=45+560*g.totalTime/max,y=225-192*g.rate/100;
   s+='<circle cx="'+x+'" cy="'+y+'" r="7" fill="'+color(i)+'" fill-opacity="'+(g.partial?'.35':'.9')+'" stroke="'+color(i)+'"><title>'+esc(g.model+' | '+g.run+' | '+fmt(g.rate)+'% | '+duration(g.totalTime)+' | '+g.rows.length+' filtered attempts'+(g.partial?' | PARTIAL SUITE':''))+'</title></circle>';
@@ -288,7 +290,8 @@ function renderAttempts(){
 function renderRuns(){
  $('notebooks').innerHTML=data.runs.filter(run=>!state.excluded.includes(run.id)).map(run=>{
   const rs=enriched.filter(r=>r.run===run.id),passed=rs.filter(r=>r.passed).length;
-  return '<article class="run-card"><div class="panel-title"><div><h2>'+esc(run.id)+'</h2><p>'+esc(fmtDate(run.created))+'</p></div><span class="tag">'+esc(run.config.suite||'typescript')+'</span></div><div class="run-stats"><span>'+rs.length+' saved</span><span>'+passed+' passed</span><span>'+run.config.models.length+' planned models</span><span>'+run.errors.length+' setup errors</span></div><p class="note">Notebook follows run toggles; task and outcome filters apply to the comparison views.</p><details><summary>Settings, hardware and revision history</summary><pre>'+esc(JSON.stringify(run,null,2))+'</pre></details>'+(run.errors.length?'<details open><summary>Model setup errors</summary><pre>'+esc(JSON.stringify(run.errors,null,2))+'</pre></details>':'')+'</article>';
+  const timing=Number.isFinite(run.timing?.total_suite_s)?'<p>Total suite time: <strong>'+duration(run.timing.total_suite_s)+'</strong> including setup, downloads and grading. '+(run.timing.segments?.at(-1)?.active?'Last saved checkpoint; run may still be active.':'Saved across invocations.')+'</p>':'';
+  return '<article class="run-card"><div class="panel-title"><div><h2>'+esc(run.id)+'</h2><p>'+esc(fmtDate(run.created))+'</p></div><span class="tag">'+esc(run.config.suite||'typescript')+'</span></div><div class="run-stats"><span>'+rs.length+' saved</span><span>'+passed+' passed</span><span>'+run.config.models.length+' planned models</span><span>'+run.errors.length+' setup errors</span></div>'+timing+'<p class="note">Notebook follows run toggles; task and outcome filters apply to the comparison views.</p><details><summary>Settings, hardware and revision history</summary><pre>'+esc(JSON.stringify(run,null,2))+'</pre></details>'+(run.errors.length?'<details open><summary>Model setup errors</summary><pre>'+esc(JSON.stringify(run.errors,null,2))+'</pre></details>':'')+'</article>';
  }).join('');
 }
 function setView(v){
@@ -300,7 +303,10 @@ function setView(v){
 async function openDetail(r){
  detailRow=r;$('detailRun').textContent=r.run+' / '+r.model;$('detailTitle').textContent=r.task;
  $('detailSummary').textContent=nice(r.status)+' · '+fmt(r.tokens_s)+' tok/s · '+fmt(r.wall_s)+' s · thinking '+r.thinking+' · '+(r.checks||[]).filter(c=>c.pass).length+'/'+r.total_checks+' check groups passed';
- const tabs=[['Result','result.json'],['Source','solution.ts'],['Prompt','request.json'],['Thinking','thinking.txt'],['Compiler','compile.log'],['Checks','checks.json'],['Types','typechecks.ts'],['Raw answer','answer.txt']];
+ const tabs=r.backend==='dsh'?
+  [['Final result','result.json'],['Final source','solution.ts'],['First result','first-result.json'],['First source','first-solution.ts'],['Prompt','request.json'],['Tools','tool-events.jsonl'],['DSH session','dsh-events.jsonl'],['DSH errors','dsh-stderr.log'],['Provider errors','provider-errors.jsonl'],['Compiler','compile.log']]:
+  [['Result','result.json'],['Source','solution.ts'],['Prompt','request.json'],['Thinking','thinking.txt'],['Compiler','compile.log'],['Checks','checks.json'],['Types','typechecks.ts'],['Raw answer','answer.txt']];
+ if(r.backend==='dsh')$('detailSummary').textContent+=' · first: '+String(r.first_passed??'no submission')+' · '+(r.submissions||0)+' submissions · '+(r.tool_calls||0)+' tools · stop: '+nice(r.agent_stop_reason);
  $('detailTabs').innerHTML=tabs.map(([name,file])=>'<button data-file="'+file+'">'+name+'</button>').join('');
  $('detailTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>loadArtifact(b.dataset.file));
  $('detail').showModal();await loadArtifact('result.json');
@@ -318,7 +324,7 @@ async function refresh(){
  finally{busy=false;$('refresh').disabled=false}
 }
 function downloadCSV(){
- const keys=['run','suite','backend','model','task','repeat','status','passed','compiled','tokens_s','wall_s','ttft_s','thinking','context','tokens','temperature','seed','digest','suiteHash','harnessHash','saved'];
+ const keys=['run','suite','backend','model','task','repeat','status','passed','first_passed','compiled','tokens_s','wall_s','end_to_end_s','grading_wall_s','tool_calls','submissions','model_requests','input_tokens','output_tokens','agent_stop_reason','ttft_s','thinking','context','tokens','temperature','seed','digest','suiteHash','harnessHash','saved'];
  const quote=x=>{let s=String(x??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};
  const text=[keys.map(quote).join(','),...matching.map(r=>keys.map(k=>quote(r[k])).join(','))].join('\r\n');
  const url=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='benchroom-filtered.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);

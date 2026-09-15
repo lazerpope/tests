@@ -81,11 +81,11 @@
                 <div class="panel-title">
                     <div>
                         <h2>Pass rate versus total time</h2>
-                        <p>Y: pass rate. X: summed model request time. Hover over points for model and run details.</p>
+                        <p>Y: pass rate. X: summed recorded attempt time. Hover over points for model and run details.</p>
                     </div>
                 </div>
                 <div id="totalTimeChart"></div>
-                <p class="note">Recorded model time excludes downloads, warmup, compilation, checks and pauses. Historical results do not contain full suite elapsed time.</p>
+                <p class="note">DSH attempts include agent execution and private grading. Direct Ollama attempts record model request time only. Use the Backend filter for fair timing comparisons. DSH run totals, including setup and downloads, appear in the experiment notebook; historical direct runs lack full suite timing.</p>
             </article>
             <article class="panel">
                 <div class="panel-title">
@@ -105,7 +105,7 @@
                                 <th data-sort="rate">Pass rate ↕</th>
                                 <th data-sort="compile">Compile ↕</th>
                                 <th data-sort="speed">Tokens/s ↕</th>
-                                <th data-sort="totalTime">Total model time ↕</th>
+                                <th data-sort="totalTime">Total attempt time ↕</th>
                                 <th data-sort="saved">Saved ↕</th>                                
                                 <th data-sort="ttft">TTFT s ↕</th>
                                 <th>Coverage / settings</th>

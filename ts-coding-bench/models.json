@@ -1,5 +1,5 @@
 [
-  {"name":"qwen2.5-coder:0.5b","gb":0.4,"group":"qwen","enabled":false,"thinking":false},
+  {"name":"qwen2.5-coder:0.5b","gb":0.4,"group":"qwen","enabled":false,"thinking":true},
   {"name":"qwen3:0.6b","gb":0.5,"group":"qwen","enabled":false,"thinking":true},
   {"name":"qwen2.5-coder:1.5b","gb":1.0,"group":"qwen","enabled":false,"thinking":false},
   {"name":"qwen3.5:0.8b","gb":1.0,"group":"qwen","enabled":false,"thinking":true},
