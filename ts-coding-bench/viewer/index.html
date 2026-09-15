@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Benchroom · Model research</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<aside>
+ <a class="brand" href="/"><span class="brandmark">b.</span>benchroom<span class="edition">LOCAL</span></a>
+ <div class="side-heading">WORKSPACE</div>
+ <nav><button class="nav active" data-view="overview">◈ <span>Overview</span></button><button class="nav" data-view="attempts">≡ <span>Task explorer</span></button><button class="nav" data-view="runs">▦ <span>Run notebook</span></button></nav>
+ <div class="side-heading split">INCLUDED RUNS <span id="runCount"></span></div>
+ <div class="run-actions"><button id="allRuns">Select all</button><button id="noRuns">Clear</button></div>
+ <div id="runList"></div>
+ <div class="side-footer"><span class="dot"></span> Read-only workspace<br><small>Model runs remain under your control.</small></div>
+</aside>
+<main>
+ <header><div><div class="eyebrow">CODING INTELLIGENCE / LOCAL LAB</div><h1 id="heading">The bigger picture<span>.</span></h1><p id="subheading">Compare capability, speed, and the details behind every answer.</p></div><div class="header-actions"><label class="live"><input id="live" type="checkbox" checked> Live · 10s</label><button id="refresh">↻ Refresh</button><button id="export" class="primary">Export CSV ↗</button></div></header>
+ <div class="statusline"><span id="connection">Connecting to saved results…</span><span id="updated"></span></div>
+ <section class="filter-panel">
+ <div class="filter-top"><div class="search-wrap">⌕ <input id="search" placeholder="Search models, tasks, runs or errors…" aria-label="Search results"></div><button id="reset" class="subtle">Reset filters</button></div>
+ <div class="filters" id="filters"></div>
+ <details class="advanced"><summary>More controls <span>dates · generation settings · limits</span></summary><div class="filters" id="advancedFilters"></div><div class="range-filters"><label>Saved from<input id="from" type="date"></label><label>Saved through<input id="to" type="date"></label><label>Minimum tokens/s<input id="minSpeed" type="number" min="0" placeholder="Any"></label><label>Maximum answer seconds<input id="maxTime" type="number" min="0" placeholder="Any"></label><label class="check-label"><input id="completeOnly" type="checkbox"> Only completed run/model groups</label></div></details>
+ </section>
+ <div id="empty" hidden class="empty"><h2>No matching results yet.</h2><p>Include a run or loosen your filters. New saved answers appear automatically.</p></div>
+ <section id="overview">
+ <div id="metrics" class="metrics"></div>
+ <div class="chart-grid"><article class="panel"><div class="panel-title"><div><h2>Quality meets speed</h2><p>One point per run, model and code revision. Hover for details.</p></div><span class="tag">EXPLORE</span></div><div id="scatter"></div></article><article class="panel"><div class="panel-title"><div><h2>Where answers break</h2><p>Outcomes across the selected attempts.</p></div></div><div id="outcomes"></div></article></div>
+ <article class="panel"><div class="panel-title"><div><h2>Comparison board</h2><p>Click column headings to sort. Partial groups stay marked.</p></div><span id="groupCount" class="tag"></span></div><p class="note">Different task sets, settings and suite versions are separate experiments. Rates below use filtered, saved attempts—not unfinished tasks.</p><div class="table-scroll"><table><thead><tr><th data-sort="model">Model ↕</th><th data-sort="run">Run ↕</th><th data-sort="rate">Pass rate ↕</th><th data-sort="compile">Compile ↕</th><th data-sort="speed">Tokens/s ↕</th><th data-sort="latency">Answer s ↕</th><th data-sort="ttft">TTFT s ↕</th><th>Coverage / settings</th></tr></thead><tbody id="board"></tbody></table></div></article>
+ <article class="panel"><div class="panel-title"><div><h2>Task matrix</h2><p>Each cell is the pass rate for saved attempts. Click a cell to inspect.</p></div><div class="legend"><i class="good"></i> Passed <i class="bad"></i> Failed <i class="missing"></i> No result</div></div><div id="matrix" class="table-scroll"></div></article>
+ <div class="chart-grid"><article class="panel"><div class="panel-title"><div><h2>Latency distribution</h2><p>Complete answer time, excluding compilation and evaluation.</p></div></div><div id="latencyChart"></div></article><article class="panel"><div class="panel-title"><div><h2>Results over time</h2><p>Saved attempts per day. File modification time is used.</p></div></div><div id="timeline"></div></article></div>
+ </section>
+ <section id="attempts" hidden><div class="panel"><div class="panel-title"><div><h2>Task explorer</h2><p>Open any answer to inspect source, prompts, thinking and failures.</p></div><select id="attemptSort" aria-label="Sort attempts"><option value="new">Newest saved</option><option value="old">Oldest saved</option><option value="slow">Slowest answer</option><option value="fast">Fastest generation</option><option value="failed">Failures first</option></select></div><div id="attemptList"></div><div class="pagination"><button id="prev">← Previous</button><span id="pageInfo"></span><button id="next">Next →</button></div></div></section>
+ <section id="runs" hidden><div id="notebooks"></div></section>
+ <details class="panel diagnostics"><summary id="diagnosticLabel">Import diagnostics</summary><pre id="diagnostics"></pre></details>
+ <footer>BENCHROOM <span>Saved evidence. Clear comparisons.</span><span>Local assets · no CDN · no external requests</span></footer>
+</main>
+<dialog id="detail"><div class="dialog-head"><div><div class="eyebrow" id="detailRun"></div><h2 id="detailTitle"></h2></div><button id="close" aria-label="Close details">✕</button></div><div id="detailSummary"></div><div class="tabs" id="detailTabs"></div><div class="code-toolbar"><span id="artifactName"></span><button id="copy">Copy</button></div><pre id="code"></pre></dialog>
+<script src="/app.js"></script></body></html>
