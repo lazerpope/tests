@@ -1,0 +1,35 @@
+[
+  {"name":"qwen3:8b","gb":5.2,"group":"core","enabled":false,"thinking":true},
+  {"name":"qwen2.5-coder:0.5b","gb":0.4,"group":"core","enabled":false,"thinking":false},
+  {"name":"qwen2.5-coder:1.5b","gb":1.0,"group":"core","enabled":false,"thinking":false},
+  {"name":"qwen2.5-coder:3b","gb":1.9,"group":"core","enabled":false,"thinking":false},
+  {"name":"qwen2.5-coder:7b","gb":4.7,"group":"core","enabled":false,"thinking":false},
+  {"name":"qwen3.5:0.8b","gb":1.0,"group":"core","enabled":false,"thinking":true},
+  {"name":"qwen3.5:2b","gb":2.7,"group":"core","enabled":false,"thinking":true},
+  {"name":"qwen3.5:4b","gb":3.4,"group":"core","enabled":false,"thinking":true},
+  {"name":"qwen3:0.6b","gb":0.5,"group":"extended","enabled":false,"thinking":true},
+  {"name":"qwen3:1.7b","gb":1.4,"group":"extended","enabled":false,"thinking":true},
+  {"name":"qwen3:4b","gb":2.5,"group":"core","enabled":false,"thinking":true},
+  {"name":"phi4-mini:3.8b","gb":2.5,"group":"core","enabled":false,"thinking":false},
+  {"name":"ministral-3:3b","gb":3.0,"group":"core","enabled":false,"thinking":false},
+  {"name":"ministral-3:8b","gb":6.0,"group":"extended","enabled":false,"thinking":false},
+  {"name":"gemma3:1b","gb":0.9,"group":"extended","enabled":false,"thinking":false},
+  {"name":"gemma3:4b","gb":3.3,"group":"core","enabled":false,"thinking":false},
+  {"name":"deepseek-coder:1.3b","gb":0.8,"group":"extended","enabled":false,"thinking":false},
+  {"name":"deepseek-coder:6.7b","gb":3.9,"group":"extended","enabled":false,"thinking":false},
+  
+  {"name":"codegemma:7b","gb":5.0,"group":"extended","enabled":true,"thinking":false},
+  {"name":"codellama:7b","gb":3.8,"group":"extended","enabled":true,"thinking":false},
+  {"name":"granite-code:3b","gb":2.0,"group":"extended","enabled":true,"thinking":false},
+  {"name":"granite-code:8b","gb":4.6,"group":"extended","enabled":true,"thinking":false},
+  {"name":"qwen3.5:9b","gb":6.6,"group":"borderline","enabled":true,"thinking":true},
+  {"name":"minicpm-v:8b-2.6-q3_K_M","gb":4.9,"group":"recommended","enabled":true,"thinking":false},
+  {"name":"minicpm-v:8b-2.6-q4_0","gb":5.5,"group":"recommended","enabled":true,"thinking":false},
+  {"name":"minicpm-v:8b-2.6-q4_K_M","gb":5.7,"group":"recommended","enabled":true,"thinking":false},
+  
+  {"name":"granite4.2:3b","gb":2.2,"group":"recommended","enabled":true,"thinking":true},
+  {"name":"granite4.2:8b","gb":5.3,"group":"recommended","enabled":true,"thinking":true},
+  {"name":"hf.co/Tesslate/OmniCoder-9B-GGUF:Q4_K_M","gb":5.74,"group":"recommended","enabled":true,"thinking":true},
+  {"name":"ornith-1.5:9b","gb":6.6,"group":"borderline","enabled":true,"thinking":true}
+
+]

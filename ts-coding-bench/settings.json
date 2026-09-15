@@ -1,0 +1,17 @@
+{
+  "suite": "typescript",
+  "context": 4096,
+  "tokens": 2048,
+  "temperature": 0,
+  "top_p": 0.9,
+  "top_k": 40,
+  "min_p": 0,
+  "repeat_penalty": 1.1,
+  "seed": 42,
+  "repeats": 1,
+  "thinking": "off",
+  "heartbeat": 5,
+  "idle_timeout": 120,
+  "flash_attention": true,
+  "kv_cache_type": "q8_0"
+}

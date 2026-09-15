@@ -1,0 +1,13 @@
+{
+  "typescript": {
+    "enabled": true,
+    "description": "16 self-contained TypeScript coding tasks with compiler and runtime checks.",
+    "runner": "typescript"
+  },
+  "engine2d": {
+    "enabled": false,
+    "description": "Reserved for isolated engine2d bug-fix tasks with numerical checks.",
+    "runner": null,
+    "reason": "Inactive: project snapshot, injected bug, and independent numerical grader are not prepared."
+  }
+}
