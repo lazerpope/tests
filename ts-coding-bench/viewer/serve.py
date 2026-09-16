@@ -74,7 +74,8 @@ class Handler(BaseHTTPRequestHandler):
             allowed = {"solution.ts", "answer.txt", "thinking.txt", "compile.log",
                        "request.json", "result.json", "typechecks.ts", "checks.json",
                        "first-solution.ts", "first-result.json", "dsh-events.jsonl",
-                       "tool-events.jsonl", "dsh-stderr.log", "provider-errors.jsonl"}
+                       "tool-events.jsonl", "dsh-stderr.log", "provider-errors.jsonl",
+                       "public-result.json", "protocol-summary.json"}
             if not target.is_relative_to(RUNS.resolve()) or target.name not in allowed:
                 return self.send(403, '{"error":"Artifact not allowed"}')
             try:

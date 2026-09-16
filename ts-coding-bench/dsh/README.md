@@ -1,5 +1,11 @@
 # DSH coding benchmark
 
+## Current workflow: v2 offline source repairs
+
+**Use [WORKFLOW-V2.md](WORKFLOW-V2.md) for current commands and behavior.** New runs use direct source submissions, a text adapter for models without native tools, independent public examples/type checks, and a default three-candidate repair budget. Agents are explicitly told they are offline and receive no shell or network tool.
+
+The remainder of this document describes the **legacy v1 shell workflow** for interpreting existing runs and is retained with your earlier examples. Its shell tools, capability rejections and first-check-group disclosure do not describe new runs.
+
 This is a separate **real DeepSeek Harness agent runner**. The existing `bench.py run` remains the direct Ollama benchmark. Nothing here starts until you run a command.
 
 ## First run
@@ -18,6 +24,9 @@ python dsh_bench.py build
 
 ```powershell
 python -u dsh_bench.py run --suite typescript --models "qwen3:8b" --tasks group-by --pull --context 8192 --tokens 2048 --thinking off --seconds 300 --run dsh-first
+```
+```powershell
+python -u dsh_bench.py run --suite typescript --models "deepseek-coder:1.3b"  --pull --context 8192 --tokens 2048 --thinking off --seconds 300 --run dsh-first
 ```
 
 **Implementation status:** source and syntax reviewed; the complete DSH/Docker/model pipeline has not been executed. Docker's Linux engine was unavailable during implementation. Your first run is the integration check. There is no fallback to an unrestricted host shell.
@@ -40,7 +49,10 @@ To select specific catalog entries regardless of enabled flags:
 
 ```powershell
 python -u dsh_bench.py run --models "qwen3:8b,qwen3:4b" --pull --context 8192 --tokens 4096 --thinking on --run dsh-thinking
+python -u dsh_bench.py run --models "qwen2.5-coder:3b" --pull --context 8192 --tokens 4096 --thinking on --run dsh-thinking-qwen
+python -u dsh_bench.py run --models "hf.co/Tesslate/OmniCoder-9B-GGUF:Q4_K_M" --pull --context 8192 --tokens 4096 --thinking on --run dsh-thinking-omni
 ```
+
 
 A new alias named `tsb-dsh-<settings-hash>` holds each model's sampling/context preset. Aliases remain available after the run; base model weights are reused. No export or manual editing of DSH settings is necessary for this runner.
 

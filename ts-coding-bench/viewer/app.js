@@ -10,7 +10,7 @@ let sortKey='rate',sortDir=-1;
 let state={excluded:[],filters:{},search:'',from:'',to:'',minSpeed:'',maxTime:'',completeOnly:false,live:true};
 try{state={...state,...JSON.parse(localStorage.getItem('benchroom-v1')||'{}')}}catch{}
 const save=()=>{try{localStorage.setItem('benchroom-v1',JSON.stringify(state))}catch{}};
-const fieldDefs=[['model','Model'],['task','Task'],['status','Outcome'],['suite','Suite'],['backend','Backend'],['thinking','Thinking'],['agent_stop_reason','Agent stop reason'],['first_passed','First submission passed']];
+const fieldDefs=[['model','Model'],['task','Task'],['status','Outcome'],['suite','Suite'],['backend','Backend'],['thinking','Effective thinking'],['tool_protocol','Tool protocol'],['workflow','Workflow'],['failure_category','Failure category'],['candidate_submitted','Source submitted'],['agent_stop_reason','Agent stop reason'],['first_passed','First submission passed']];
 const advancedDefs=[['category','Category'],['context','Context'],['tokens','Output limit'],['temperature','Temperature'],['top_p','Top p'],['top_k','Top k'],['min_p','Min p'],['repeat_penalty','Repeat penalty'],['seed','Seed'],['repeat','Repeat index'],['digest','Model digest'],['suiteHash','Suite version'],['harnessHash','Harness version'],['gpu','GPU']];
 const fmtDate=x=>x?new Date(x).toLocaleString():'Unknown';
 const fullkey=r=>JSON.stringify([r.run,r.model,r.digest,r.harnessHash]);
@@ -21,7 +21,12 @@ function prepare(){
   const run=runs.get(r.run),cfg=run.config,opts=cfg.options||{};
   // Old records preserved by an acknowledged change retain their original revision.
   const prior=(run.history||[]).find(h=>(h.preserved_results||[]).includes(r.artifact.slice(r.run.length+1)+'/result.json'));
-  return {...r,suite:cfg.suite||'typescript',backend:cfg.backend||'ollama',thinking:cfg.thinking||'unknown',
+  const effective=typeof r.thinking_effective==='boolean'?r.thinking_effective:
+   cfg.backend==='dsh'&&Object.hasOwn(r,'actual_thinking')?Boolean(r.actual_thinking):null;
+  return {...r,suite:cfg.suite||'typescript',backend:cfg.backend||'ollama',thinking:effective===null?(cfg.thinking||'unknown'):(effective?'on':'off'),
+   thinking_requested:r.thinking_requested||cfg.thinking||'unknown',
+   tool_protocol:r.tool_protocol||cfg.tool_protocol||(cfg.backend==='dsh'?'native (legacy)':'none'),
+   workflow:r.workflow||cfg.workflow||(cfg.backend==='dsh'?'shell_agent_v1':'direct'),
    context:opts.num_ctx??'unknown',tokens:opts.num_predict??'unknown',temperature:opts.temperature??'unknown',
    top_p:opts.top_p??'default',top_k:opts.top_k??'default',min_p:opts.min_p??'default',repeat_penalty:opts.repeat_penalty??'default',
    seed:opts.seed??'unknown',digest:r.model_digest||'unknown',suiteHash:cfg.suite_hash||'unknown',
@@ -138,6 +143,19 @@ function render(){
   metric('Total recorded attempt time',duration(recordedTime(matching).seconds),recordedTime(matching).missing+' attempts without timing · DSH includes grading; direct runs record generation only');
  const agentRows=matching.filter(r=>r.backend==='dsh');
  if(agentRows.length)$('metrics').innerHTML+=metric('DSH first submission',fmt(100*agentRows.filter(r=>r.first_passed===true).length/agentRows.length)+'<small>%</small>','Private pass rate before public-feedback repairs; no submission counts as unsolved');
+ const sourceRows=agentRows.filter(r=>r.workflow==='source_repair_v2');
+ if(sourceRows.length){
+  const submitted=sourceRows.filter(r=>r.candidate_submitted).length,graded=sourceRows.filter(r=>r.graded),successful=graded.filter(r=>r.passed).length;
+  const protocolOK=sourceRows.filter(r=>r.candidate_submitted&&r.protocol_errors===0).length;
+  const privateTotal=sourceRows.reduce((s,r)=>s+(r.total_checks||0),0),privatePassed=sourceRows.reduce((s,r)=>s+(r.checks||[]).filter(c=>c.pass).length,0);
+  const publicTotal=sourceRows.reduce((s,r)=>s+(r.public_checks_total||0),0),publicPassed=sourceRows.reduce((s,r)=>s+(r.public_checks_passed||0),0);
+  $('metrics').innerHTML+=metric('Source submission rate',fmt(100*submitted/sourceRows.length)+'<small>%</small>',submitted+' / '+sourceRows.length+' attempts supplied real source')+
+   metric('Clean protocol success',fmt(100*protocolOK/sourceRows.length)+'<small>%</small>','Source submitted without response-format errors')+
+   metric('Pass rate among graded code',graded.length?fmt(100*successful/graded.length)+'<small>%</small>':'—',graded.length+' graded; '+(sourceRows.length-graded.length)+' ungraded attempts excluded')+
+   metric('Public / private runtime checks',(publicTotal?fmt(100*publicPassed/publicTotal):'—')+'% / '+(privateTotal?fmt(100*privatePassed/privateTotal):'—')+'%','Unsatisfied or unrun groups count as unsolved; type checks are separate')+
+   metric('Distinct candidates',String(sourceRows.reduce((s,r)=>s+(r.distinct_candidates||0),0)),'Duplicate submissions do not count as repairs')+
+   metric('Generated tokens',sourceRows.filter(r=>Number.isFinite(r.output_tokens)).reduce((s,r)=>s+r.output_tokens,0).toLocaleString(),sourceRows.filter(r=>!Number.isFinite(r.output_tokens)).length+' attempts lack usage; interrupted responses may be missing');
+ }
  $('empty').hidden=matching.length>0||view==='runs';
  renderBoard();renderScatter();renderTotalTime();renderOutcomes();renderMatrix();renderLatency();renderTimeline();renderAttempts();renderRuns();
  $('diagnosticLabel').textContent='Import diagnostics · '+data.warnings.length+' warnings';
@@ -304,9 +322,10 @@ async function openDetail(r){
  detailRow=r;$('detailRun').textContent=r.run+' / '+r.model;$('detailTitle').textContent=r.task;
  $('detailSummary').textContent=nice(r.status)+' · '+fmt(r.tokens_s)+' tok/s · '+fmt(r.wall_s)+' s · thinking '+r.thinking+' · '+(r.checks||[]).filter(c=>c.pass).length+'/'+r.total_checks+' check groups passed';
  const tabs=r.backend==='dsh'?
-  [['Final result','result.json'],['Final source','solution.ts'],['First result','first-result.json'],['First source','first-solution.ts'],['Prompt','request.json'],['Tools','tool-events.jsonl'],['DSH session','dsh-events.jsonl'],['DSH errors','dsh-stderr.log'],['Provider errors','provider-errors.jsonl'],['Compiler','compile.log']]:
+  [['Final result','result.json'],['Final source','solution.ts'],['First result','first-result.json'],['First source','first-solution.ts'],['Prompt','request.json'],['Public feedback','public-result.json'],['Protocol','protocol-summary.json'],['Tools','tool-events.jsonl'],['DSH session','dsh-events.jsonl'],['DSH errors','dsh-stderr.log'],['Provider errors','provider-errors.jsonl'],['Compiler','compile.log']]:
   [['Result','result.json'],['Source','solution.ts'],['Prompt','request.json'],['Thinking','thinking.txt'],['Compiler','compile.log'],['Checks','checks.json'],['Types','typechecks.ts'],['Raw answer','answer.txt']];
  if(r.backend==='dsh')$('detailSummary').textContent+=' · first: '+String(r.first_passed??'no submission')+' · '+(r.submissions||0)+' submissions · '+(r.tool_calls||0)+' tools · stop: '+nice(r.agent_stop_reason);
+ if(r.workflow==='source_repair_v2')$('detailSummary').textContent+=' · protocol: '+r.tool_protocol+' · requested thinking: '+r.thinking_requested+' · observed reasoning: '+r.thinking_observed+' · '+r.failure_category;
  $('detailTabs').innerHTML=tabs.map(([name,file])=>'<button data-file="'+file+'">'+name+'</button>').join('');
  $('detailTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>loadArtifact(b.dataset.file));
  $('detail').showModal();await loadArtifact('result.json');
@@ -324,7 +343,7 @@ async function refresh(){
  finally{busy=false;$('refresh').disabled=false}
 }
 function downloadCSV(){
- const keys=['run','suite','backend','model','task','repeat','status','passed','first_passed','compiled','tokens_s','wall_s','end_to_end_s','grading_wall_s','tool_calls','submissions','model_requests','input_tokens','output_tokens','agent_stop_reason','ttft_s','thinking','context','tokens','temperature','seed','digest','suiteHash','harnessHash','saved'];
+ const keys=['run','suite','backend','workflow','model','task','repeat','status','failure_category','passed','first_passed','candidate_submitted','graded','compiled','public_passed','public_types_pass','public_checks_passed','public_checks_total','private_check_fraction','tokens_s','wall_s','end_to_end_s','grading_wall_s','tool_calls','submissions','distinct_candidates','protocol_errors','tool_protocol','tool_protocol_requested','model_requests','input_tokens','output_tokens','agent_stop_reason','ttft_s','thinking_requested','thinking','thinking_reason','thinking_observed','context','tokens','temperature','seed','digest','suiteHash','harnessHash','saved'];
  const quote=x=>{let s=String(x??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};
  const text=[keys.map(quote).join(','),...matching.map(r=>keys.map(k=>quote(r[k])).join(','))].join('\r\n');
  const url=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='benchroom-filtered.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);

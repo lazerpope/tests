@@ -2,24 +2,17 @@
 
 All commands below are for you to run in PowerShell. Editing configuration or reading this guide does not start anything.
 
-## NEW: Run tasks through DSH with private grading
+## DSH v2: recommended offline repair benchmark
 
-The separate `dsh_bench.py` runner gives DSH an isolated Docker shell, public feedback and repair attempts. Hidden grading happens after DSH stops. It uses your enabled models and saves results to the same dashboard with **Backend: dsh**.
-
-Start Docker Desktop in Linux-container mode and Ollama, then run from this folder:
+From the benchmark folder, with Ollama and Docker's Linux engine running:
 
 ~~~powershell
-# One-time isolated compiler image build (no benchmark tests)
-python dsh_bench.py build
-
-# One model / one task first
-python -u dsh_bench.py run --models "qwen3:8b" --tasks group-by --pull --context 8192 --tokens 2048 --thinking off --run dsh-first
-
-# All enabled tool-capable models / complete TypeScript suite
-python -u dsh_bench.py run --suite typescript --pull --context 8192 --tokens 2048 --thinking off --run dsh-enabled
+python -u dsh_bench.py run --suite typescript --pull --tool-protocol text --context 8192 --tokens 2048 --thinking off --max-submissions 3 --max-steps 6 --seconds 300 --run dsh-repair-v2
 ~~~
 
-This integration targets your installed **DSH 0.1.5-rc.1**. It has not been run end to end. See the [complete DSH guide](dsh/README.md) for isolation, thinking/cache controls, budgets, stopping/resuming and first-versus-final scores. Restart the viewer server once to enable the new DSH artifact tabs and suite timing.
+Runs all enabled models using the same source-submission protocol, even without native tools. Agents are told explicitly that internet, shell and package installation are unavailable; the installed compiler and public checks run automatically. One initial implementation plus two distinct repairs; hidden grading stays private. Use a new run name instead of resuming the overnight v1 run.
+
+See [the current DSH guide](dsh/WORKFLOW-V2.md) for a small first batch, capability/thinking handling, context limits, stopping/resuming and dashboard metrics. The existing overnight compiler image is reused. No tests or models were started while implementing these changes.
 
 ## 1. Open the benchmark folder
 
@@ -246,14 +239,6 @@ python -u bench.py run --suite typescript --run ts-selected
 Ctrl+C interrupts immediately; saved results remain. Interrupted attempts without result.json are retried. Completed attempts, including model errors, are skipped on resume. Model setup errors are retried. Do not change enabled model selection, settings, tasks, or code while resuming a run; use a new run name for changed experiments.
 
 A crash may leave runs/active.lock containing the process PID. Only remove it after verifying that process is no longer running. The lock prevents two benchmark runs from sharing GPU timings.
-
-If a download/progress code fix changes only the harness hash, you can explicitly retain completed work:
-
-~~~powershell
-python -u bench.py run --suite typescript --pull --run ts-enabled --resume-harness-change
-~~~
-
-This records the old/new code hashes and the preserved result paths in the manifest. It does not permit changes to models, tasks, scoring-suite hash, or generation settings. Use this for a known operational fix, not a change to grading or generation behavior. Model setup/download errors are retried; saved task results stay unchanged.
 
 ## 8. DSH: use the same model presets
 
